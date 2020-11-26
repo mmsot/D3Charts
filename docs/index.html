@@ -17,17 +17,17 @@
     var logindate= parseFloat(external.EVAL('LoginDate'));
     
     ////////////////////////////////DATA????????????????????/////////////////////////////////////////////////////////////////////////////////////////
-    var dataset=external.GETSQLDATASET("SELECT BRANCH"
-    +",MTRL.MTRMARK"
-    +",MTRL.MTRCATEGORY"
-    +",MTRL.MTRGROUP"
-    +",SUM(ISNULL(MTRLINES.LNETLINEVAL,0)) AS TOTAL"
-    +",COUNT(DISTINCT MTRL.MTRL) AS CODES"
-    +"FROM FINDOC,MTRLINES,MTRL" 
-    +"WHERE FINDOC.FINDOC=MTRLINES.FINDOC"
-    +"AND MTRLINES.MTRL=MTRL.MTRL"
+    var dataset=external.GETSQLDATASET("SELECT BRANCH "
+    +",MTRL.MTRMARK "
+    +",MTRL.MTRCATEGORY "
+    +",MTRL.MTRGROUP "
+    +",SUM(ISNULL(MTRLINES.LNETLINEVAL,0)) AS TOTAL "
+    +",COUNT(DISTINCT MTRL.MTRL) AS CODES "
+    +"FROM FINDOC,MTRLINES,MTRL " 
+    +"WHERE FINDOC.FINDOC=MTRLINES.FINDOC "
+    +"AND MTRLINES.MTRL=MTRL.MTRL "
     //+"AND FINDOC.TRNDATE>="+begyear +"AND FINDOC.TRNDATE<="+logindate
-    +"GROUP BY BRANCH,MTRL.MTRMARK,MTRL.MTRCATEGORY,MTRL.MTRGROUP"
+    +"GROUP BY BRANCH,MTRL.MTRMARK,MTRL.MTRCATEGORY,MTRL.MTRGROUP "
     +"ORDER BY BRANCH,MTRL.MTRMARK,MTRL.MTRCATEGORY,MTRL.MTRGROUP",null);
     
     var branch=new Array();
