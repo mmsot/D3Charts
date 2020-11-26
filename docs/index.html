@@ -1,0 +1,198 @@
+<!-- Code from d3-graph-gallery.com -->
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<!-- Load d3.js -->
+<script src="https://d3js.org/d3.v4.js"></script>
+
+<!-- Create a div where the graph will take place -->
+<div id="my_dataviz"></div>
+<script>
+    
+    //SOFTONE=================================================================    
+        xplorer = external;
+    var companycode=external.EVAL('CompanyCode');
+    var loginyear=external.EVAL('LoginYear');
+    var begyear= parseFloat(external.EVAL('IncDay(LoginDate,-180)'));
+    var logindate= parseFloat(external.EVAL('LoginDate'));
+    
+    ////////////////////////////////DATA????????????????????/////////////////////////////////////////////////////////////////////////////////////////
+    var dataset=external.GETSQLDATASET("SELECT BRANCH"
+    +",MTRL.MTRMARK"
+    +",MTRL.MTRCATEGORY"
+    +",MTRL.MTRGROUP"
+    +",SUM(ISNULL(MTRLINES.LNETLINEVAL,0)) AS TOTAL"
+    +",COUNT (DISTINCT MTRL.MTRL) AS CODES"
+    +"FROM FINDOC,MTRLINES,MTRL" 
+    +"WHERE FINDOC.FINDOC=MTRLINES.FINDOC"
+    +"AND MTRLINES.MTRL=MTRL.MTRL"
+    //+"AND FINDOC.TRNDATE>="+begyear +"AND FINDOC.TRNDATE<="+logindate
+    +"GROUP BY BRANCH,MTRL.MTRMARK,MTRL.MTRCATEGORY,MTRL.MTRGROUP"
+    +"ORDER BY BRANCH,MTRL.MTRMARK,MTRL.MTRCATEGORY,MTRL.MTRGROUP",null);
+    
+    var branch=new Array();
+    var mark=new Array();
+    var category=new Array();
+    var group=new Array();
+    var totals=new Array();
+    var codes=new Array();
+    
+    var i=0
+        dataset.FIRST;
+            while (!dataset.EOF) {
+            branch[i]=[dataset.BRANCH];
+            mark[i]=[dataset.MTRMARK];
+            category[i]=[dataset.MTRCATEGORY];
+            group[i]=[dataset.MTRGROUP];
+            totals[i]=[dataset.TOTAL];
+            codes[i]=[dataset.CODES];
+        dataset.NEXT;
+        i++
+            };
+            
+   
+    
+    function generateChartData() {
+      var chartData = [];
+      for ( var i = 0; i < branch.length; i++ ) {
+        for (var j =0; j < mark.length; j++) {
+            for (var k =0; k < category.length; k++) {
+                for (var l =0; l < group.length; l++) {
+        chartData.push( {
+            name: branch[i],
+            children: [
+                {
+                name: mark[j],
+                children: [
+                    {
+                    name: category[k],
+                    children: [
+                        {name: group[l],
+                        value: totals[l]}
+                    ]
+                }
+                ]
+            }
+            ]
+        });
+                }
+            }
+        }
+    }
+      
+      return chartData;
+    }
+    
+    var chartData = generateChartData();
+    var data = JSON.stringify(chartData);
+</script>
+
+<script>
+
+    // set the dimensions and margins of the graph
+    var margin = {top: 10, right: 10, bottom: 10, left: 10},
+      width = 445 - margin.left - margin.right,
+      height = 445 - margin.top - margin.bottom;
+    
+    // append the svg object to the body of the page
+    var svg = d3.select("#my_dataviz")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+    
+    // read json data
+    d3.json(data, function(data) {
+    
+      // Give the data to this cluster layout:
+      var root = d3.hierarchy(data).sum(function(d){ return d.value}) // Here the size of each leave is given in the 'value' field in input data
+    
+      // Then d3.treemap computes the position of each element of the hierarchy
+      d3.treemap()
+        .size([width, height])
+        .paddingTop(28)
+        .paddingRight(7)
+        .paddingInner(3)      // Padding between each rectangle
+        //.paddingOuter(6)
+        //.padding(20)
+        (root)
+    
+      // prepare a color scale
+
+      const randColor = (data) => `#${Math.floor(Math.random()*167772158*data).toString(16).slice(0,6)}`;
+      const colors=branch.map(v=>randColor(v));
+      const minValue=Math.min(totals);
+      const maxValue=Math.max(totals);
+
+      var color = d3.scaleOrdinal()
+        .domain(branch)
+        .range(colors)
+    
+      // And a opacity scale
+      var opacity = d3.scaleLinear()
+        .domain([minValue, maxValue])
+        .range([.4,1])
+    
+      // use this information to add rectangles:
+      svg
+        .selectAll("rect")
+        .data(root.leaves())
+        .enter()
+        .append("rect")
+          .attr('x', function (d) { return d.x0; })
+          .attr('y', function (d) { return d.y0; })
+          .attr('width', function (d) { return d.x1 - d.x0; })
+          .attr('height', function (d) { return d.y1 - d.y0; })
+          .style("stroke", "black")
+          .style("fill", function(d){ return color(d.parent.data.name)} )
+          .style("opacity", function(d){ return opacity(d.data.value)})
+    
+      // and to add the text labels
+      svg
+        .selectAll("text")
+        .data(root.leaves())
+        .enter()
+        .append("text")
+          .attr("x", function(d){ return d.x0+5})    // +10 to adjust position (more right)
+          .attr("y", function(d){ return d.y0+20})    // +20 to adjust position (lower)
+          .text(function(d){ return d.data.name })
+          .attr("font-size", "19px")
+          .attr("fill", "white")
+    
+      // and to add the text labels
+      svg
+        .selectAll("vals")
+        .data(root.leaves())
+        .enter()
+        .append("text")
+          .attr("x", function(d){ return d.x0+5})    // +10 to adjust position (more right)
+          .attr("y", function(d){ return d.y0+35})    // +20 to adjust position (lower)
+          .text(function(d){ return d.data.value })
+          .attr("font-size", "11px")
+          .attr("fill", "white")
+    
+      // Add title for the 3 groups
+      svg
+        .selectAll("titles")
+        .data(root.descendants().filter(function(d){return d.depth==1}))
+        .enter()
+        .append("text")
+          .attr("x", function(d){ return d.x0})
+          .attr("y", function(d){ return d.y0+21})
+          .text(function(d){ return d.data.name })
+          .attr("font-size", "19px")
+          .attr("fill",  function(d){ return color(d.data.name)} )
+    
+      // Add title for the 3 groups
+      svg
+        .append("text")
+          .attr("x", 0)
+          .attr("y", 14)    // +20 to adjust position (lower)
+          .text("Sakarino")
+          .attr("font-size", "19px")
+          .attr("fill",  "grey" )
+    
+    })
+    </script>
